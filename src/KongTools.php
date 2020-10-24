@@ -489,7 +489,7 @@ class KongTools
      * @param string $modelPath 模型文件地址 默认 ../app/Models/
      * @return string
      */
-    public static function makeModel($sqlInfo, $onlyArray = [], $fileGroups = [], $notArray = [], $useBase = 'App\Models\Base', $extends = 'extends Base',$modelPath = '../app/Models/')
+    public static function makeModel($sqlInfo, $onlyArray = [], $fileGroups = [], $notArray = [], $useBase = 'App\Models\Base', $extends = 'extends Base', $modelPath = '../app/Models/')
     {
         try {
             //链接数据库
@@ -500,17 +500,17 @@ class KongTools
             $port = isset($sqlInfo["port"]) ? $sqlInfo["port"] : 3360;//端口号
             $socket = isset($sqlInfo["socket"]) ? $sqlInfo["socket"] : "";//端口号
             $connect = mysqli_connect($host, $user, $password, $database, $port, $socket);
-            if (!$connect){
+            if (!$connect) {
                 throw new \Exception("数据库链接失败！");
             }
             //执行查询
             $data = mysqli_query($connect, "show table status");
-            if (!$data){
+            if (!$data) {
                 throw new \Exception("数据库查询失败！");
             }
             //获取所有查询数据
             $tables = mysqli_fetch_all($data, MYSQLI_ASSOC);
-            if (!$tables){
+            if (!$tables) {
                 throw new \Exception("数据库获取失败失败！");
             }
             $prefix = $sqlInfo["prefix"];//数据库表前缀
@@ -538,14 +538,19 @@ class KongTools
                 if (in_array($firstName, $fileGroups)) {
                     //拼接文件夹的命名空间
                     $filesName = ucfirst($firstName);
+                    if (!is_dir($modelPath . $filesName)) {
+                        mkdir($modelPath . $filesName, 0777, true);
+                    }
+                    $namespace = '\\' . $filesName;
                     $modelName = $modelPath . $filesName . '/' . $bigTableName;
                 } else {
+                    $namespace = '';
                     $modelName = $modelPath . $bigTableName;
                 }
                 //生成模型文件
                 $fileInfo = '<?php
         
-namespace App\Models;
+namespace App\Models'.$namespace.';
         
 use Illuminate\Database\Eloquent\Model;
         
@@ -555,8 +560,8 @@ class ' . $bigTableName . ' extends Model
 }';
                 file_put_contents($modelName . ".php", $fileInfo);
                 //打开创建的文件
-                $modelPath = $modelName . '.php';
-                $fileInfo = file_get_contents($modelPath);
+                $modelPathFile = $modelName . '.php';
+                $fileInfo = file_get_contents($modelPathFile);
                 //替换模型定义和备注
                 $fileInfo = str_replace('//', '/**
      * ' . $table['Comment'] . '
@@ -570,7 +575,7 @@ class ' . $bigTableName . ' extends Model
                     //更改引入继承模型
                     $fileInfo = str_replace('Illuminate\Database\Eloquent\Model', $useBase, $fileInfo);
                 }
-                file_put_contents($modelPath, $fileInfo);
+                file_put_contents($modelPathFile, $fileInfo);
             }
             return "执行成功";
         } catch (\Exception $r) {
