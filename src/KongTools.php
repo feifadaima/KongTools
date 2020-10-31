@@ -267,17 +267,10 @@ class KongTools
     public static function endDataFunction($endData, $functionArr)
     {
         foreach ($functionArr as $functionArrKey => $functionArrValue) {
-            //设置默认参数
-            $dataArr = isset($endData[$functionArrKey]) ? [$endData[$functionArrKey]] : [];
-            //使用已存在数据传参
-            if (isset($functionArrValue[1])) {
-                $dataArr = [];//重置参数
-                foreach ($functionArrValue[1] as $value) {
-                    $dataArr[] = $endData[$value];
-                }
-            }
+            //自定义参数
+            $customArr = isset($functionArrValue[1]) ? [$functionArrValue[1]] : [];
             //返回
-            $endData[$functionArrKey] = call_user_func($functionArrValue[0], ...$dataArr);
+            $endData[$functionArrKey] = call_user_func($functionArrValue[0], $endData, $customArr);
         }
         return $endData;
     }
