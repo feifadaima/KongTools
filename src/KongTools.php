@@ -268,7 +268,7 @@ class KongTools
     {
         foreach ($functionArr as $functionArrKey => $functionArrValue) {
             //自定义参数
-            $customArr = isset($functionArrValue[1]) ? [$functionArrValue[1]] : [];
+            $customArr = isset($functionArrValue[1]) ? $functionArrValue[1] : [];
             //返回
             $endData[$functionArrKey] = call_user_func($functionArrValue[0], $endData, $customArr);
         }
