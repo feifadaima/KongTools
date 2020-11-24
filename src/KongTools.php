@@ -76,7 +76,7 @@ class KongTools
      * @param array $data 需筛选结果集
      * @param array $endData 最终返回数据格式下标数组
      * @param array $screenData with关联筛选返回数据格式拼接集
-     * @param array $manyData 数组返回字段集(预防返回数据为空时,类型问题)
+     * @param array $manyData 数组返回字段集
      * @param array $defaults 默认值数组
      * @param array $callback 闭包方法
      * @param int $type 执行数据是否是一条  0 否  1 是
@@ -101,7 +101,7 @@ class KongTools
             //循环需要拆分数组   $screenIndex   with关联筛选字段   $screenValue  返回别名
             foreach ($screenData as $screenIndex => $screenValue) {
                 if (array_key_exists($screenIndex, $data)) {
-                    $data = self::withSplit($screenValue, $data[$screenIndex], $data);
+                    $data = self::withSplit($screenValue, $data[$screenIndex], $data,$endData);
                 }
             }
             /**
@@ -121,7 +121,7 @@ class KongTools
                     }
                 }
             }
-            $data = self::endDataSplicing($endData, $manyData, $data, $defaults, $notFound);
+            $data = self::endDataSplicing($endData, $data, $defaults, $notFound);
             //处理方法
             if (count($callback)) {
                 $data = self::endDataFunction($data, $callback);
@@ -133,7 +133,7 @@ class KongTools
                     //判断当前筛选下标是否在一级数组
                     if (array_key_exists($screenIndex, $dataValue)) {
                         //当前一级数组筛选字段，当前筛选下标数组数据，当前一级数组全部数据，
-                        $dataValue = self::withSplit($screenValue, $dataValue[$screenIndex], $dataValue);
+                        $dataValue = self::withSplit($screenValue, $dataValue[$screenIndex], $dataValue,$endData);
                     }
                 }
                 /**
@@ -153,7 +153,7 @@ class KongTools
                         }
                     }
                 }
-                $endArr = self::endDataSplicing($endData, $manyData, $dataValue, $defaults, $notFound);
+                $endArr = self::endDataSplicing($endData, $dataValue, $defaults, $notFound);
                 //处理方法
                 if (count($callback)) {
                     $endArr = self::endDataFunction($endArr, $callback);
@@ -169,41 +169,37 @@ class KongTools
      * @param array $withName with关联字段更改集
      * @param array $withData 当前with关联结果集
      * @param array $endData 最终结果集
+     * @param array $endScreen 筛选结果集
      * @return mixed
      */
-    public static function withSplit($withName, $withData, $endData)
+    public static function withSplit($withName, $withData, $endData,&$endScreen)
     {
         //循环当前一维数组筛选返回字段数组
         foreach ($withName as $index => $value) {
-            //判断是否存在下级with关联，（多维数组）
-            if ($withData && array_key_exists(0, $withData) && count($withData) == 1) {
-                //取出第一个
-                $withData = reset($withData);
-            }
             //当前数据下是否有当前筛选的下标参数，并且当前数据下筛选的下标数据是数组
             if (isset($withData[$index]) && is_array($withData[$index])) {
                 //当前需筛返回字段是否是数组
                 if (is_array($value)) {
                     //递归重复，将最终返回结果字段添加到最外层
-                    $endData = self::withSplit($value, $withData[$index], $endData);
+                    $endData = self::withSplit($value, $withData[$index], $endData,$endData);
                 } else {
                     //当前数据存在
                     if ($withData) {
                         //将当前筛选下标的数据直接放在数据集中
                         $endData[$value] = $withData[$index];
+                        $endScreen[] = $value;
                     }
                 }
-                //删除当前下标数据
-                unset($withData[$index]);
             } else {
                 /**
                  * 默认参数别名返回
                  * 类型整型不修改参数名，获取新下标
                  */
                 $arrIndex = $index;
-                if (gettype($index) == "integer") {
+                if (is_int($index)) {
                     $arrIndex = $value;
                 }
+                $endScreen[] = $value;
                 if ($withData && isset($withData[$arrIndex])) {
                     //将当前筛选下标的数据直接放在数据集中
                     $endData[$value] = $withData[$arrIndex];
@@ -217,13 +213,12 @@ class KongTools
      * 最终返回数组拼接
      *
      * @param array $endData 最终返回数组下标数组
-     * @param array $arrData 数组返回字段集
      * @param array $data 需筛选结果集
      * @param array $defaults 默认值数组
      * @param int $notFound 是否空字符和null及删除  0 否  1 是
      * @return array
      */
-    public static function endDataSplicing($endData, $arrData, $data, $defaults, $notFound)
+    public static function endDataSplicing($endData, $data, $defaults, $notFound)
     {
         $arr = [];
         //是否存在最终返回数据下标自定义
@@ -233,23 +228,19 @@ class KongTools
              * 类型整型不修改参数名，获取新下标
              */
             $arrIndex = $endDataKey;
-            if (gettype($endDataKey) == "integer" || gettype($endDataKey) == "int") {
+            if (is_int($endDataKey)) {
                 $arrIndex = $endDataValue;
             }
             //初步定义
             $arr[$endDataValue] = '';
-            //是否存在数组返回集中
-            if (array_key_exists($arrIndex, $arrData)) {
-                $arr[$endDataValue] = [];
-            }
             //是否存在筛选集
             if (array_key_exists($arrIndex, $data)) {
                 $arr[$endDataValue] = $data[$arrIndex];
             }
             //最终数据是否存在,不存在检测是否赋默认值，有取默认值，无则直接返回
-            $arr[$endDataValue] = (empty($arr[$endDataValue]) && ($arr[$endDataValue] !== 0) && ($arr[$endDataValue] !== false)) ?
-                (array_key_exists($endDataValue, $defaults) ? $defaults[$endDataValue] : $arr[$endDataValue])
-                : $arr[$endDataValue];
+            if ((empty($arr[$endDataValue]) && ($arr[$endDataValue] !== 0) && ($arr[$endDataValue] !== false)) && array_key_exists($endDataValue, $defaults)){
+                $arr[$endDataValue] = $defaults[$endDataValue];
+            }
             //是否预设默认值,不为真及删除(是否为空字符,null,0以及空数组)
             if ($notFound && !array_key_exists($endDataValue, $defaults) && ($arr[$endDataValue] === "" || $arr[$endDataValue] === 0 || $arr[$endDataValue] === null || !count($arr[$endDataValue]))) {
                 unset($arr[$endDataValue]);
