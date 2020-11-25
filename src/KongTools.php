@@ -172,7 +172,7 @@ class KongTools
      * @param array $endScreen 筛选结果集
      * @return mixed
      */
-    public static function withSplit($withName, $withData, $endData,&$endScreen)
+    public static function withSplit($withName, $withData, $endData, &$endScreen)
     {
         //循环当前一维数组筛选返回字段数组
         foreach ($withName as $index => $value) {
@@ -181,7 +181,7 @@ class KongTools
                 //当前需筛返回字段是否是数组
                 if (is_array($value)) {
                     //递归重复，将最终返回结果字段添加到最外层
-                    $endData = self::withSplit($value, $withData[$index], $endData,$endData);
+                    $endData = self::withSplit($value, $withData[$index], $endData,$endScreen);
                 } else {
                     //当前数据存在
                     if ($withData) {
@@ -238,12 +238,18 @@ class KongTools
                 $arr[$endDataValue] = $data[$arrIndex];
             }
             //最终数据是否存在,不存在检测是否赋默认值，有取默认值，无则直接返回
-            if ((empty($arr[$endDataValue]) && ($arr[$endDataValue] !== 0) && ($arr[$endDataValue] !== false)) && array_key_exists($endDataValue, $defaults)){
-                $arr[$endDataValue] = $defaults[$endDataValue];
+            if (array_key_exists($endDataValue, $defaults)){
+                if (empty($arr[$endDataValue]) && ($arr[$endDataValue] !== 0) && ($arr[$endDataValue] !== false)){
+                    $arr[$endDataValue] = $defaults[$endDataValue];
+                }
             }
             //是否预设默认值,不为真及删除(是否为空字符,null,0以及空数组)
-            if ($notFound && !array_key_exists($endDataValue, $defaults) && ($arr[$endDataValue] === "" || $arr[$endDataValue] === 0 || $arr[$endDataValue] === null || !count($arr[$endDataValue]))) {
-                unset($arr[$endDataValue]);
+            if ($notFound){
+                if (!array_key_exists($endDataValue, $defaults)){
+                    if ($arr[$endDataValue] === "" || $arr[$endDataValue] === 0 || $arr[$endDataValue] === null || !count($arr[$endDataValue])) {
+                        unset($arr[$endDataValue]);
+                    }
+                }
             }
         }
         return $arr;
