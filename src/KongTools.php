@@ -176,20 +176,10 @@ class KongTools
     {
         //循环当前一维数组筛选返回字段数组
         foreach ($withName as $index => $value) {
-            //当前数据下是否有当前筛选的下标参数，并且当前数据下筛选的下标数据是数组
-            if (isset($withData[$index]) && is_array($withData[$index])) {
-                //当前需筛返回字段是否是数组
-                if (is_array($value)) {
-                    //递归重复，将最终返回结果字段添加到最外层
-                    $endData = self::withSplit($value, $withData[$index], $endData,$endScreen);
-                } else {
-                    //当前数据存在
-                    if ($withData) {
-                        //将当前筛选下标的数据直接放在数据集中
-                        $endData[$value] = $withData[$index];
-                        $endScreen[] = $value;
-                    }
-                }
+            //当前需筛返回字段是否是数组
+            if (is_array($value)) {
+                //递归重复，将最终返回结果字段添加到最外层
+                $endData = self::withSplit($value, $withData[$index], $endData,$endScreen);
             } else {
                 /**
                  * 默认参数别名返回
@@ -487,7 +477,7 @@ class KongTools
             $user = $sqlInfo["user"];//用户名
             $password = $sqlInfo["password"];//密码
             $database = $sqlInfo["database"];//数据库
-            $port = isset($sqlInfo["port"]) ? $sqlInfo["port"] : 3360;//端口号
+            $port = isset($sqlInfo["port"]) ? $sqlInfo["port"] : 3306;//端口号
             $socket = isset($sqlInfo["socket"]) ? $sqlInfo["socket"] : "";//端口号
             $connect = mysqli_connect($host, $user, $password, $database, $port, $socket);
             if (!$connect) {
