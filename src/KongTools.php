@@ -236,7 +236,7 @@ class KongTools
             //是否预设默认值,不为真及删除(是否为空字符,null,0以及空数组)
             if ($notFound){
                 if (!array_key_exists($endDataValue, $defaults)){
-                    if ($arr[$endDataValue] === "" || $arr[$endDataValue] === 0 || $arr[$endDataValue] === null || !count($arr[$endDataValue])) {
+                    if ($arr[$endDataValue] === "" || $arr[$endDataValue] === 0 || $arr[$endDataValue] === null || (is_array($arr[$endDataValue]) && !count($arr[$endDataValue]))) {
                         unset($arr[$endDataValue]);
                     }
                 }
@@ -527,13 +527,57 @@ class KongTools
                     $namespace = '';
                     $modelName = $modelPath . $bigTableName;
                 }
+                $dataOne = mysqli_query($connect, "select column_name, column_comment,column_type from information_schema.columns
+where table_schema = '".$database."'
+and table_name = '".$table["Name"]."'");
+                if (!$dataOne){
+                    throw new \Exception("错误");
+                }
+                $dataOne = mysqli_fetch_all($dataOne, MYSQLI_ASSOC);
+                $string="";
+                foreach ($dataOne as $key=>$value){
+                    $str=substr($value["column_type"],0,3);
+                    switch ($str){
+                        case "var":
+                        case "tex":
+                        case "cha":
+                            $typeStr="string";
+                            break;
+                        case "int":
+                        case "tin":
+                            $typeStr="int";
+                            break;
+                        case "dec":
+                            $typeStr="float";
+                            break;
+                        case "dat":
+                            $typeStr="\Illuminate\Support\Carbon";
+                            break;
+                        default:
+                            $typeStr = "";
+                            break;
+                    }
+                    if (!in_array($value["column_name"],["created_at","updated_at"])){
+                        if ($key){
+                            $string .=" * @property ".$typeStr." $".$value["column_name"]." ".$value["column_comment"]."\n";
+                        }else{
+                            $string .="* @property ".$typeStr." $".$value["column_name"]." ".$value["column_comment"]."\n";
+                        }
+                    }
+                }
+                //生成模型文件
                 //生成模型文件
                 $fileInfo = '<?php
-        
+
 namespace App\Models'.$namespace.';
-        
+
 use Illuminate\Database\Eloquent\Model;
-        
+/**
+ * App/Models/'.$bigTableName.'
+ *
+ '.$string.' * @property \Illuminate\Support\Carbon|null $created_at
+ * @property \Illuminate\Support\Carbon|null $updated_at
+ */
 class ' . $bigTableName . ' extends Model
 {
     //
