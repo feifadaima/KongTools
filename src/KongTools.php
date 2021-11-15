@@ -399,21 +399,6 @@ class KongTools
     }
 
     /**
-     * 字符转换
-     * @param $str
-     * @return bool|false|string|string[]|null
-     */
-    public static function strToUtf8($str)
-    {
-        $encode = mb_detect_encoding($str, array("ASCII", 'UTF-8', "GB2312", "GBK", 'BIG5'));
-        if ($encode == 'UTF-8') {
-            return $str;
-        } else {
-            return mb_convert_encoding($str, 'UTF-8', $encode);
-        }
-    }
-
-    /**
      * 网络请求
      * @param $http_type
      * @param $method
